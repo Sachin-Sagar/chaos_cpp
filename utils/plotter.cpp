@@ -4,7 +4,7 @@
 #include <sstream>
 #include <iomanip>
 #include <optional>
-#include <SFML/Config.hpp> // Gives us SFML_VERSION_MAJOR
+#include <SFML/Config.hpp>
 
 Plot2D::Plot2D(const std::string& title) 
     : m_title(title), m_zoom(1.0f), m_offsetX(0.0f), m_offsetY(0.0f),
@@ -25,9 +25,8 @@ void Plot2D::setData(const std::vector<Point2D>& points) {
 void Plot2D::show() {
     sf::ContextSettings settings;
     
-    // 1. WINDOW CREATION
 #if SFML_VERSION_MAJOR >= 3
-    settings.antiAliasingLevel = 4; // Notice the capital 'A'
+    settings.antiAliasingLevel = 4;
     sf::RenderWindow window(sf::VideoMode({(unsigned int)PlotSettings::WINDOW_WIDTH, (unsigned int)PlotSettings::WINDOW_HEIGHT}), 
                             m_title, sf::Style::Default, sf::State::Windowed, settings);
 #else
@@ -38,7 +37,6 @@ void Plot2D::show() {
     
     sf::Font font;
     
-    // 2. FONT LOADING
 #if SFML_VERSION_MAJOR >= 3
     if (!font.openFromFile(PlotSettings::FONT_PATH)) {
 #else
@@ -49,7 +47,6 @@ void Plot2D::show() {
 
     while (window.isOpen()) {
         
-        // 3. EVENT POLLING
 #if SFML_VERSION_MAJOR >= 3
         while (const std::optional<sf::Event> event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) window.close();
@@ -71,7 +68,6 @@ void Plot2D::show() {
 
         float moveSpeed = 0.05f / m_zoom;
         
-        // 4. KEYBOARD INPUT
 #if SFML_VERSION_MAJOR >= 3
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) m_offsetY += moveSpeed;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) m_offsetY -= moveSpeed;
@@ -92,7 +88,6 @@ void Plot2D::show() {
 }
 
 void Plot2D::drawGridAndAxes(sf::RenderWindow& window, const sf::Font& font) {
-    // 5. TEXT CONSTRUCTORS AND GEOMETRY
 #if SFML_VERSION_MAJOR >= 3
     sf::Text titleText(font, m_title, 24);
     titleText.setFillColor(sf::Color::White);
@@ -140,8 +135,13 @@ void Plot2D::drawGridAndAxes(sf::RenderWindow& window, const sf::Font& font) {
 #endif
     window.draw(yLabelText);
 
+    // FIX 1: Provide font to the constructor for SFML 3
+#if SFML_VERSION_MAJOR >= 3
+    sf::Text tickLabel(font);
+#else
     sf::Text tickLabel;
     tickLabel.setFont(font);
+#endif
     tickLabel.setCharacterSize(12);
     tickLabel.setFillColor(sf::Color(200, 200, 200));
 
@@ -177,7 +177,6 @@ void Plot2D::drawGridAndAxes(sf::RenderWindow& window, const sf::Font& font) {
 }
 
 void Plot2D::drawData(sf::RenderWindow& window) {
-    // 6. PRIMITIVE TYPES
 #if SFML_VERSION_MAJOR >= 3
     sf::VertexArray plotPixels(sf::PrimitiveType::Points);
 #else
@@ -195,8 +194,10 @@ void Plot2D::drawData(sf::RenderWindow& window) {
 
         if (screen_x >= PlotSettings::MARGIN_X && screen_x <= PlotSettings::WINDOW_WIDTH - PlotSettings::MARGIN_X &&
             screen_y >= PlotSettings::MARGIN_Y && screen_y <= PlotSettings::WINDOW_HEIGHT - PlotSettings::MARGIN_Y) {
+            
+            // FIX 2: Use aggregate initialization for sf::Vertex in SFML 3
 #if SFML_VERSION_MAJOR >= 3
-            plotPixels.append(sf::Vertex({screen_x, screen_y}, PlotSettings::POINT_COLOR));
+            plotPixels.append(sf::Vertex{{screen_x, screen_y}, PlotSettings::POINT_COLOR});
 #else
             plotPixels.append(sf::Vertex(sf::Vector2f(screen_x, screen_y), PlotSettings::POINT_COLOR));
 #endif
