@@ -69,11 +69,13 @@ void Plot2D::show() {
         float moveSpeed = 0.05f / m_zoom;
         
 #if SFML_VERSION_MAJOR >= 3
+        f (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape)) window.close(); // NEW EXIT KEY
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) m_offsetY += moveSpeed;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) m_offsetY -= moveSpeed;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) m_offsetX -= moveSpeed;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)) m_offsetX += moveSpeed;
 #else
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) window.close(); // NEW EXIT KEY
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) m_offsetY += moveSpeed;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) m_offsetY -= moveSpeed;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) m_offsetX -= moveSpeed;
