@@ -22,7 +22,8 @@ void Plot2D::setData(const std::vector<Point2D>& points) {
 
 void Plot2D::show() {
     sf::ContextSettings settings;
-    settings.antialiasingLevel = 8;
+    settings.antialiasingLevel = 4; // Lowered from 8 for better compatibility
+
     sf::RenderWindow window(sf::VideoMode(PlotSettings::WINDOW_WIDTH, PlotSettings::WINDOW_HEIGHT), 
                             m_title, sf::Style::Default, settings);
     
