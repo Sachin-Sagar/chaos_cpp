@@ -1,4 +1,3 @@
-// utils/settings.hpp
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <string>
@@ -18,11 +17,10 @@ namespace PlotSettings
     // Cross-platform font path detection
     #if defined(_WIN32) || defined(_WIN64)
         const std::string FONT_PATH = "C:/Windows/Fonts/arial.ttf";
-    #elif __ANDROID__
+    #elif defined(__ANDROID__)
         // Standard Android system font path
         const std::string FONT_PATH = "/system/fonts/Roboto-Regular.ttf";
     #else
-        // Default for Linux/Generic Unix
         const std::string FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
     #endif
 }
