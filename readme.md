@@ -7,13 +7,16 @@ This project serves as a practical laboratory for comparing standard scalar C++ 
 ## Features
 
 *   **Dual-Architecture Implementation:** 
-    *   **AoS (Array of Structures):** The standard C++ approach using objects like `Point2D`.
-    *   **SoA (Structure of Arrays):** A SIMD-friendly layout where coordinates are stored in contiguous component arrays, allowing for direct 256-bit register loading.
-*   **Custom SFML Plotting Engine:** Dedicated renderers for both AoS and SoA data types. The SoA version includes a **SIMD-Accelerated Renderer** that transforms 4 points at once.
+    *   **AoS (Array of Structures):** The standard C++ approach using objects like `Point2D` or `Complex`.
+    *   **SoA (Structure of Arrays):** A SIMD-friendly layout where components are stored in contiguous arrays, enabling 256-bit register throughput.
+*   **Custom SFML Plotting Engine:** 
+    *   **Scatter Plotter:** For coordinate-based data (Bifurcations, Lorenz).
+    *   **Fractal Image Plotter:** A dedicated engine for grid-based data (Mandelbrot) using `sf::Image` and `sf::Texture`.
 *   **Benchmarking Suite:** A command-line mode to measure raw mathematical throughput and rendering efficiency without GUI overhead.
 *   **Simulations Included:**
     1.  **Logistic Map Bifurcation Diagram:** Explores the period-doubling route to chaos ($x_{n+1} = r x_n (1 - x_n)$).
     2.  **Lorenz Attractor:** Simulates the "Butterfly Effect" using 4th-Order Runge-Kutta (RK4) integration.
+    3.  **Mandelbrot Set:** A compute-intensive escape-time fractal that serves as the primary showcase for SIMD throughput.
 
 ## Project Structure
 
@@ -23,17 +26,20 @@ Chaos_cpp/
 ├── build_and_run.sh          # Automated build script (Linux/macOS)
 ├── utils/                    # Shared utilities
 │   ├── settings.hpp          # Global configuration (resolution, colors, etc.)
-│   └── timer.hpp             # High-resolution RAII timer for benchmarking
+│   ├── timer.hpp             # High-resolution RAII timer for benchmarking
+│   └── image_plotter.hpp/cpp # Fractal rendering engine (SFML 3.0)
 ├── src/
 │   ├── aos/                  # Phase 1: Baseline Array of Structures (Scalar)
 │   │   ├── math_models.hpp/cpp
 │   │   ├── bifurcations.hpp/cpp
 │   │   ├── lorenz.hpp/cpp
+│   │   ├── mandelbrot.hpp/cpp
 │   │   └── plotter.hpp/cpp   # AoS-specific renderer
 │   └── soa/                  # Phase 2-5: Structure of Arrays & SIMD
 │       ├── math_models.hpp   # Defines Points2DSoA
 │       ├── bifurcations.hpp/cpp (Scalar & AVX2 SIMD)
 │       ├── lorenz.hpp/cpp       (Scalar & AVX2 Stream SIMD)
+│       ├── mandelbrot_simd.hpp/cpp (AVX2 Vectorized Escape-Time)
 │       └── plotter.hpp/cpp      (SIMD-Accelerated Renderer)
 └── results/                  # Snapshot storage folder
 ```
@@ -61,7 +67,8 @@ To run the side-by-side comparison of all optimization stages:
 | **2** | **SoA Layout** | SIMD Readiness | Reorganizing data in memory is required for register efficiency. |
 | **3** | **Manual SIMD (Math)** | ~27% Gain (at -O1) | Explicit intrinsics beat unoptimized scalar code. |
 | **4** | **Stream SIMD (Lorenz)** | **3x Speedup** | Parallelizing independent data streams (universes) unlocks SIMD's full power. |
-| **5** | **SIMD Rendering** | **2x Speedup** | SIMD accelerates the graphics pipeline (Double-to-Float & coordinate math). |
+| **5** | **Fractal Vectorization** | **3.4x Speedup** | The Mandelbrot set proves that high arithmetic intensity is the "sweet spot" for SIMD. |
+| **6** | **SIMD Rendering** | **2x Speedup** | SIMD accelerates the graphics pipeline (Double-to-Float & coordinate math). |
 
 ## Controls
 

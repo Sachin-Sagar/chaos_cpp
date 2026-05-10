@@ -124,7 +124,7 @@
         <p>By numerically integrating the ODEs (e.g., using Runge-Kutta 4th Order) from an initial state \( (x_0, y_0, z_0) \), we trace a trajectory through 3D phase space.</p>
 
         <figure>
-            <img src=".venv/lib/python3.14/site-packages/networkx/drawing/tests/baseline/test_display_complex.png" alt="The Lorenz Attractor Phase Space Plot" style="background-color: white; max-width: 600px;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Lorenz_attractor.png/600px-Lorenz_attractor.png" alt="The Lorenz Attractor Phase Space Plot" style="background-color: white; max-width: 600px;">
             <figcaption>Figure 2: The Lorenz Attractor plotted in 3D phase space. The geometry exhibits a fractional dimension (a fractal), classifying it as a "Strange Attractor".</figcaption>
         </figure>
 
@@ -134,9 +134,39 @@
     </div>
 
     <div class="content-section">
-        <h2>3. Implementation and Numerical Simulation</h2>
+        <h2>3. The Mandelbrot Set: Stability in the Complex Plane</h2>
         
-        <h3>3.1 Numerical Integration (RK4)</h3>
+        <h3>3.1 The Iterative Formula</h3>
+        <p>The Mandelbrot set is the set of complex numbers \( c \) for which the function \( f_c(z) = z^2 + c \) does not diverge to infinity when iterated from \( z = 0 \). That is, the sequence:</p>
+        
+        <div class="equation">
+            $$ z_0 = 0 $$
+            $$ z_{n+1} = z_n^2 + c $$
+        </div>
+        
+        <p>Remains bounded in absolute value. If \( |z_n| \) exceeds 2, it is guaranteed that the sequence will diverge to infinity. The number of iterations required for the sequence to "escape" this radius is called the <strong>Escape Time</strong>.</p>
+
+        <h3>3.2 The Complex Plane as a Phase Space</h3>
+        <p>While the Logistic Map is 1D and the Lorenz System is 3D, the Mandelbrot set is visualized on a 2D <strong>Complex Plane</strong>. Each pixel on the screen represents a unique coordinate \( c = x + iy \).</p>
+
+        <figure>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Mandelbrot_Set.jpg/600px-Mandelbrot_Set.jpg" alt="The Mandelbrot Set" style="max-width: 500px;">
+            <figcaption>Figure 3: The Mandelbrot Set rendered by escape time. The black central region represents the set itself (bounded points), while the colored regions represent points that escape at different speeds.</figcaption>
+        </figure>
+
+        <figure>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Mandelbrot_set_zoom_in_valley.jpg/600px-Mandelbrot_set_zoom_in_valley.jpg" alt="Mandelbrot Zoom" style="max-width: 500px;">
+            <figcaption>Figure 4: A high-magnification zoom into the boundary of the set, revealing the infinite complexity and self-similarity (the "Sea-Horse Valley").</figcaption>
+        </figure>
+
+        <h4>What We Are Seeing:</h4>
+        <p>The boundary of the Mandelbrot set is infinitely complex and self-similar—it is a fractal. Small changes in the value of \( c \) near the boundary lead to wildly different escape times, illustrating a form of <strong>Spatial Chaos</strong>. The "Misiurewicz points" and "bulbs" of the set are mathematically related to the bifurcation points of the logistic map through the process of <em>renormalization</em>.</p>
+    </div>
+
+    <div class="content-section">
+        <h2>4. Implementation and Numerical Simulation</h2>
+        
+        <h3>4.1 Numerical Integration (RK4)</h3>
         <p>To simulate the continuous Lorenz system on a digital computer, we must discretize time. This project employs the <strong>4th-Order Runge-Kutta (RK4)</strong> method, which provides a high degree of accuracy (error on the order of \( \Delta t^4 \)) compared to simpler methods like Euler integration.</p>
         <p>The state \( \mathbf{P}_{n+1} \) is calculated as a weighted average of four incremental steps:</p>
         <div class="equation">
@@ -147,7 +177,7 @@
             $$ \mathbf{P}_{n+1} = \mathbf{P}_n + \frac{\Delta t}{6}(\mathbf{k}_1 + 2\mathbf{k}_2 + 2\mathbf{k}_3 + \mathbf{k}_4) $$
         </div>
 
-        <h3>3.2 High-Performance Rendering with SFML</h3>
+        <h3>4.2 High-Performance Rendering with SFML</h3>
         <p>Visualizing hundreds of thousands of points in real-time requires efficient handling of the graphics pipeline. Instead of issuing a draw call for every point—which would bottleneck the CPU and GPU communication—this simulation uses <strong>sf::VertexArray</strong>.</p>
         <ul>
             <li><strong>Batching:</strong> All points are packed into a single contiguous block of memory.</li>
@@ -155,7 +185,7 @@
             <li><strong>Coordinate Mapping:</strong> The <code>Plot2D</code> class dynamically translates mathematical coordinates to screen pixels, adjusting for the user's current zoom level and offset.</li>
         </ul>
 
-        <h3>3.3 Performance Optimization & SIMD Laboratory</h3>
+        <h3>4.3 Performance Optimization & SIMD Laboratory</h3>
         <p>To achieve real-time interactive performance with millions of data points, this project goes beyond standard compiler flags, serving as a laboratory for <strong>SIMD (Single Instruction, Multiple Data)</strong> optimization. The implementation focuses on four key pillars of performance engineering:</p>
 
         <h4>A. Data Layout Reorganization (AoS to SoA)</h4>
@@ -175,6 +205,119 @@
             <li>Perform bounds checking against the window margins using vector masks.</li>
         </ul>
         <p>This vectorized rendering approach yielded a <strong>2x performance gain</strong> in the visualization layer.</p>
+
+        <h4>E. Case Study: Mandelbrot Set SIMD</h4>
+        <p>While the Logistic Map is too simple to see significant gains from SIMD, the <strong>Mandelbrot Set</strong> provides an ideal candidate. Each pixel requires a recursive complex multiplication ($z_{n+1} = z_n^2 + c$), which involves four multiplications and two additions per iteration. By processing 4 pixels simultaneously in a 256-bit AVX2 register, we can achieve significant throughput improvements.</p>
+        <p>A key challenge in vectorizing Mandelbrot is <em>conditional branching</em>: some pixels in a vector might escape the boundary (magnitude > 2) before others. We handle this using <strong>SIMD Masking</strong>, where we only increment the iteration counts and update values for lanes that are still "active."</p>
+    </div>
+
+    <div class="content-section">
+        <h2>5. Data Layouts: Array of Structures (AoS) vs. Structure of Arrays (SoA)</h2>
+        
+        <p>In high-performance computing, the way data is arranged in memory (the <strong>Data Layout</strong>) often has a more significant impact on performance than the algorithm itself. This project compares two primary layouts: <strong>AoS</strong> and <strong>SoA</strong>.</p>
+
+        <h3>5.1 Array of Structures (AoS)</h3>
+        <p>AoS is the conventional object-oriented approach. It groups all attributes of a single entity (e.g., a Point or a Complex number) into a single struct, then creates an array of those structs.</p>
+        
+        <div class="equation">
+<pre><code>// AoS Definition
+struct Complex {
+    double r;
+    double i;
+};
+
+// Memory Layout: [r1, i1, r2, i2, r3, i3, ...]
+std::vector&lt;Complex&gt; numbers;</code></pre>
+        </div>
+
+        <p><strong>Pros:</strong> High <em>spatial locality</em> for operations that need both components of the same entity. It is intuitive and maintains encapsulation.</p>
+        <p><strong>Cons:</strong> Poor for <strong>SIMD</strong>. To load four real components into a 256-bit register, the CPU must "skip" the imaginary components, leading to inefficient memory access.</p>
+
+        <h3>5.2 Structure of Arrays (SoA)</h3>
+        <p>SoA deconstructs objects. Instead of one array of structs, we have one struct containing multiple arrays—one for every component.</p>
+        
+        <div class="equation">
+<pre><code>// SoA Definition
+struct ComplexSoA {
+    std::vector&lt;double&gt; r;
+    std::vector&lt;double&gt; i;
+};
+
+// Memory Layout: 
+// R-Array: [r1, r2, r3, r4, ...]
+// I-Array: [i1, i2, i3, i4, ...]</code></pre>
+        </div>
+
+        <p><strong>Pros:</strong> Ideal for <strong>Parallelization/SIMD</strong>. Since identical components are contiguous, the CPU can load a block of 4 coordinates into a SIMD register with a single instruction (<em>Unit Stride</em>).</p>
+        <p><strong>Cons:</strong> Accessing a single "object" requires indexing into separate memory locations, which can be less intuitive.</p>
+
+        <h3>5.3 Performance Comparison (Compiler Optimization: O0)</h3>
+        <p>To understand the intrinsic benefits of data layout without compiler intervention, we compared the implementations using the <code>-O0</code> (No Optimization) flag. The results below show that even without the compiler's help, data layout matters.</p>
+
+        <table style="width:100%; border-collapse: collapse; margin: 1.5rem 0; text-align: left;">
+            <thead>
+                <tr style="background-color: #2c3e50; color: white;">
+                    <th style="padding: 10px; border: 1px solid #ddd;">Simulation</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">AoS (O0)</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">SoA Scalar (O0)</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">Performance Delta</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Logistic Map</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">~94 ms</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">~66 ms</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; color: #27ae60;"><b>+30% Faster</b></td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Lorenz Attractor</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">~21 ms</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">~16 ms</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; color: #27ae60;"><b>+23% Faster</b></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h4>Why is SoA faster even at O0?</h4>
+        <p>At the <code>-O0</code> level, the compiler generates literal translations of the C++ code with many memory accesses. The SoA layout provides better cache utilization for these simple loops because the "working set" for a single coordinate array is more compact. Furthermore, the SoA implementation in this project uses <code>std::vector::push_back</code> on separate arrays, which, surprisingly, can be more efficient for the memory controller than interleaving large 16-byte <code>Point2D</code> structures into a single vector at low optimization levels.</p>
+        
+        <h4>The SIMD Paradox at O0</h4>
+        <p>Notably, manual SIMD (AVX2) intrinsics performed <strong>slower</strong> than scalar code for the Lorenz system at O0 (~37ms vs 16ms). This is because at O0, function calls to intrinsics are not inlined, and the overhead of "shuffling" data into registers manually outweighs the math savings. This highlights that <strong>SOA is a prerequisite for SIMD, but requires compiler optimization (O3) to truly shine.</strong></p>
+
+        <h3>5.4 Final Results (Compiler Optimization: O3)</h3>
+        <p>The table below summarizes the performance gains achieved through SoA layout and manual AVX2 vectorization when compiled with <code>-O3</code>. The Mandelbrot set, being compute-intensive, shows the most dramatic improvement.</p>
+
+        <table style="width:100%; border-collapse: collapse; margin: 1.5rem 0; text-align: left;">
+            <thead>
+                <tr style="background-color: #2c3e50; color: white;">
+                    <th style="padding: 10px; border: 1px solid #ddd;">Simulation</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">AoS (O3)</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">SoA SIMD (O3)</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">Performance Delta</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Logistic Map</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">~31 ms</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">~31 ms</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; color: #7f8c8d;"><b>Neutral</b></td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Lorenz Attractor</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">~8.5 ms</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">~5.2 ms</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; color: #27ae60;"><b>+38% Faster</b></td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Mandelbrot Set</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">~170 ms</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">~49 ms</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; color: #27ae60; font-size: 1.1em;"><b>+247% Faster (3.4x)</b></td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
 </body>

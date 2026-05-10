@@ -145,7 +145,9 @@ void Plot2DSoA::saveSnapshot(sf::RenderWindow& window) {
     std::string safeTitle = m_title;
     for (char &c : safeTitle) if (!isalnum(c)) c = '_';
     ss << "results/snapshot_SOA_" << safeTitle << "_" << std::put_time(std::localtime(&in_time_t), "%Y%m%d_%H%M%S") << ".png";
-    screenshot.saveToFile(ss.str());
+    if (screenshot.saveToFile(ss.str())) {
+        std::cout << "Snapshot saved to: " << ss.str() << std::endl;
+    }
 }
 
 void Plot2DSoA::drawGridAndAxes(sf::RenderWindow& window, const sf::Font& font) {
