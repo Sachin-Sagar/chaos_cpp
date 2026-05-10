@@ -12,10 +12,11 @@ echo "--- Compiling Chaos Theory Simulations ---"
 # src/*.cpp: Simulation logic (Lorenz, Bifurcations)
 # -o chaos_sim: Output binary name
 # -lsfml-*: SFML library links
-g++ -O3 main.cpp utils/*.cpp src/*.cpp -o chaos_sim -lsfml-graphics -lsfml-window -lsfml-system
+g++ -O3 -mavx2 main.cpp src/aos/*.cpp src/soa/*.cpp -o chaos_sim -lsfml-graphics -lsfml-window -lsfml-system
 
 echo "--- Compilation Successful ---"
 echo "--- Launching Simulation ---"
 echo "Controls: W/A/S/D to Pan, Mouse Wheel to Zoom, 'P' to save PNG, 'ESC' to exit."
+echo "Use './chaos_sim --benchmark' for performance testing."
 
-./chaos_sim
+./chaos_sim "$@"

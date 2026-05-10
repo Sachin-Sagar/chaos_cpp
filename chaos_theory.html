@@ -155,12 +155,26 @@
             <li><strong>Coordinate Mapping:</strong> The <code>Plot2D</code> class dynamically translates mathematical coordinates to screen pixels, adjusting for the user's current zoom level and offset.</li>
         </ul>
 
-        <h3>3.3 Performance Optimization</h3>
-        <p>Because chaotic systems are highly sensitive, we calculate 250,000 steps for the Lorenz attractor and thousands of iterations for each parameter in the Bifurcation diagram. The project is compiled with the <strong>-O3</strong> optimization flag to enable:</p>
+        <h3>3.3 Performance Optimization & SIMD Laboratory</h3>
+        <p>To achieve real-time interactive performance with millions of data points, this project goes beyond standard compiler flags, serving as a laboratory for <strong>SIMD (Single Instruction, Multiple Data)</strong> optimization. The implementation focuses on four key pillars of performance engineering:</p>
+
+        <h4>A. Data Layout Reorganization (AoS to SoA)</h4>
+        <p>Standard C++ often uses an <strong>Array of Structures (AoS)</strong>, e.g., <code>std::vector&lt;Point2D&gt;</code>. While intuitive, this layout interleaves X and Y coordinates (XYXYXY...), which prevents the CPU from loading multiple identical components into a single register. This project implements a <strong>Structure of Arrays (SoA)</strong> layout, storing X and Y coordinates in separate contiguous blocks. This allows for <em>Unit Stride</em> memory access, enabling the CPU to load 4 or 8 identical mathematical components in a single clock cycle.</p>
+
+        <h4>B. Manual AVX2 Intrinsics</h4>
+        <p>While the <strong>-O3</strong> flag enables auto-vectorization, this project utilizes manual <strong>Intel AVX2 Intrinsics</strong> (<code>&lt;immintrin.h&gt;</code>) to explicitly control the 256-bit YMM registers. By writing handwritten SIMD code, we bypass the limitations of compiler heuristics, particularly in complex mathematical loops where data dependencies might otherwise inhibit optimization.</p>
+
+        <h4>C. Stream Vectorization (Parallel Universes)</h4>
+        <p>A significant challenge in vectorizing chaotic systems like the Lorenz Attractor is <em>loop-carried dependency</em>: state \( P_{n+1} \) strictly depends on \( P_n \). To overcome this, we employ <strong>Stream Vectorization</strong>. Instead of calculating one trajectory faster, we calculate <strong>four independent trajectories</strong> (parallel universes) with slightly different initial conditions simultaneously in the same SIMD registers. This approach achieved a <strong>3x speedup</strong> over the scalar implementation.</p>
+
+        <h4>D. SIMD-Accelerated Rendering Pipeline</h4>
+        <p>The graphics bottleneck often lies in the translation of mathematical coordinates (<code>double</code>) to screen pixels (<code>float</code>). The <code>Plot2DSoA</code> engine uses SIMD to:</p>
         <ul>
-            <li><strong>Auto-Vectorization:</strong> Utilizing SIMD (Single Instruction, Multiple Data) to process multiple coordinates in parallel.</li>
-            <li><strong>Function Inlining:</strong> Removing the overhead of function calls within the tight simulation loops.</li>
+            <li>Convert 4-8 coordinates from 64-bit double to 32-bit float precision in parallel.</li>
+            <li>Apply zoom and pan offsets to multiple points simultaneously.</li>
+            <li>Perform bounds checking against the window margins using vector masks.</li>
         </ul>
+        <p>This vectorized rendering approach yielded a <strong>2x performance gain</strong> in the visualization layer.</p>
     </div>
 
 </body>

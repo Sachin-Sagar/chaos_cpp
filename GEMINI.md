@@ -36,6 +36,12 @@ g++ -O3 main.cpp utils/*.cpp src/*.cpp -o chaos_sim -lsfml-graphics -lsfml-windo
 ./chaos_sim
 ```
 
+### Performance Benchmarking
+To establish a baseline for SIMD optimizations, run in benchmark mode:
+```bash
+./chaos_sim --benchmark
+```
+
 ## Development Conventions
 - **Mathematical Decoupling:** Simulation logic (in `src/`) generates pure mathematical coordinates (`Point2D`), keeping it agnostic of screen pixels or rendering logic.
 - **Efficient Rendering:** The `Plot2D` class uses `sf::VertexArray` to batch thousands of points into single draw calls.

@@ -1,5 +1,5 @@
 #include "plotter.hpp"
-#include "settings.hpp"
+#include "../../utils/settings.hpp"
 #include <iostream>
 #include <sstream>
 #include <iomanip>
