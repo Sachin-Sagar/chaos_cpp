@@ -124,13 +124,43 @@
         <p>By numerically integrating the ODEs (e.g., using Runge-Kutta 4th Order) from an initial state \( (x_0, y_0, z_0) \), we trace a trajectory through 3D phase space.</p>
 
         <figure>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5b/Lorenz_attractor_yb.svg" alt="The Lorenz Attractor Phase Space Plot" style="background-color: white; max-width: 600px;">
+            <img src=".venv/lib/python3.14/site-packages/networkx/drawing/tests/baseline/test_display_complex.png" alt="The Lorenz Attractor Phase Space Plot" style="background-color: white; max-width: 600px;">
             <figcaption>Figure 2: The Lorenz Attractor plotted in 3D phase space. The geometry exhibits a fractional dimension (a fractal), classifying it as a "Strange Attractor".</figcaption>
         </figure>
 
         <h4>What We Are Seeing:</h4>
         <p>The plot shows a <strong>Strange Attractor</strong>. The system is dissipative (the divergence of the vector field is \( -\sigma - 1 - \beta < 0 \)), meaning the volume of phase space shrinks to zero. However, the trajectory never intersects itself and never settles into a fixed point or a limit cycle. Instead, it orbits the two unstable fixed points, tracing out the famous "butterfly" shape.</p>
         <p>This visualization directly illustrates <strong>Sensitive Dependence on Initial Conditions</strong> (The Butterfly Effect). Two trajectories starting arbitrarily close to one another will diverge exponentially over time (characterized by a positive maximal <em>Lyapunov exponent</em>). Because the trajectory is confined to the finite volume of the attractor but is infinitely long and non-intersecting, it inherently forms a fractal structure with a dimension of approximately 2.06.</p>
+    </div>
+
+    <div class="content-section">
+        <h2>3. Implementation and Numerical Simulation</h2>
+        
+        <h3>3.1 Numerical Integration (RK4)</h3>
+        <p>To simulate the continuous Lorenz system on a digital computer, we must discretize time. This project employs the <strong>4th-Order Runge-Kutta (RK4)</strong> method, which provides a high degree of accuracy (error on the order of \( \Delta t^4 \)) compared to simpler methods like Euler integration.</p>
+        <p>The state \( \mathbf{P}_{n+1} \) is calculated as a weighted average of four incremental steps:</p>
+        <div class="equation">
+            $$ \mathbf{k}_1 = \mathbf{f}(t_n, \mathbf{P}_n) $$
+            $$ \mathbf{k}_2 = \mathbf{f}(t_n + \frac{\Delta t}{2}, \mathbf{P}_n + \frac{\Delta t}{2}\mathbf{k}_1) $$
+            $$ \mathbf{k}_3 = \mathbf{f}(t_n + \frac{\Delta t}{2}, \mathbf{P}_n + \frac{\Delta t}{2}\mathbf{k}_2) $$
+            $$ \mathbf{k}_4 = \mathbf{f}(t_n + \Delta t, \mathbf{P}_n + \Delta t\mathbf{k}_3) $$
+            $$ \mathbf{P}_{n+1} = \mathbf{P}_n + \frac{\Delta t}{6}(\mathbf{k}_1 + 2\mathbf{k}_2 + 2\mathbf{k}_3 + \mathbf{k}_4) $$
+        </div>
+
+        <h3>3.2 High-Performance Rendering with SFML</h3>
+        <p>Visualizing hundreds of thousands of points in real-time requires efficient handling of the graphics pipeline. Instead of issuing a draw call for every point—which would bottleneck the CPU and GPU communication—this simulation uses <strong>sf::VertexArray</strong>.</p>
+        <ul>
+            <li><strong>Batching:</strong> All points are packed into a single contiguous block of memory.</li>
+            <li><strong>Single Draw Call:</strong> The entire dataset is sent to the GPU and rendered in one operation, enabling smooth zooming and panning even with 250,000+ points.</li>
+            <li><strong>Coordinate Mapping:</strong> The <code>Plot2D</code> class dynamically translates mathematical coordinates to screen pixels, adjusting for the user's current zoom level and offset.</li>
+        </ul>
+
+        <h3>3.3 Performance Optimization</h3>
+        <p>Because chaotic systems are highly sensitive, we calculate 250,000 steps for the Lorenz attractor and thousands of iterations for each parameter in the Bifurcation diagram. The project is compiled with the <strong>-O3</strong> optimization flag to enable:</p>
+        <ul>
+            <li><strong>Auto-Vectorization:</strong> Utilizing SIMD (Single Instruction, Multiple Data) to process multiple coordinates in parallel.</li>
+            <li><strong>Function Inlining:</strong> Removing the overhead of function calls within the tight simulation loops.</li>
+        </ul>
     </div>
 
 </body>

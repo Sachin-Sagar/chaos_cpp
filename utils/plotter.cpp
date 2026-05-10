@@ -4,6 +4,9 @@
 #include <sstream>
 #include <iomanip>
 #include <optional>
+#include <chrono>
+#include <ctime>
+#include <filesystem>
 #include <SFML/Config.hpp>
 
 Plot2D::Plot2D(const std::string& title) 
@@ -54,6 +57,12 @@ void Plot2D::show() {
                 if (scroll->delta > 0) m_zoom *= 1.1f;
                 else m_zoom *= 0.9f;
             }
+            else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+                if (keyPressed->code == sf::Keyboard::Key::P) saveSnapshot(window);
+                else if (keyPressed->code == sf::Keyboard::Key::R) {
+                    m_zoom = 1.0f; m_offsetX = 0.0f; m_offsetY = 0.0f;
+                }
+            }
         }
 #else
         sf::Event event;
@@ -63,13 +72,19 @@ void Plot2D::show() {
                 if (event.mouseWheelScroll.delta > 0) m_zoom *= 1.1f;
                 else m_zoom *= 0.9f;
             }
+            if (event.type == sf::Event::KeyPressed) {
+                if (event.key.code == sf::Keyboard::P) saveSnapshot(window);
+                if (event.key.code == sf::Keyboard::R) {
+                    m_zoom = 1.0f; m_offsetX = 0.0f; m_offsetY = 0.0f;
+                }
+            }
         }
 #endif
 
         float moveSpeed = 0.05f / m_zoom;
         
 #if SFML_VERSION_MAJOR >= 3
-        f (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape)) window.close(); // NEW EXIT KEY
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape)) window.close(); // NEW EXIT KEY
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) m_offsetY += moveSpeed;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) m_offsetY -= moveSpeed;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) m_offsetX -= moveSpeed;
@@ -86,6 +101,41 @@ void Plot2D::show() {
         drawGridAndAxes(window, font);
         drawData(window);
         window.display();
+    }
+}
+
+void Plot2D::saveSnapshot(sf::RenderWindow& window) {
+    namespace fs = std::filesystem;
+    if (!fs::exists("results")) {
+        fs::create_directory("results");
+    }
+
+    sf::Texture texture;
+#if SFML_VERSION_MAJOR >= 3
+    if (!texture.resize(window.getSize())) return;
+    texture.update(window);
+#else
+    if (!texture.create(window.getSize().x, window.getSize().y)) return;
+    texture.update(window);
+#endif
+    sf::Image screenshot = texture.copyToImage();
+
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    
+    std::stringstream ss;
+    // Replace spaces and special characters in title with underscores for filename
+    std::string safeTitle = m_title;
+    for (char &c : safeTitle) {
+        if (!isalnum(c)) c = '_';
+    }
+    
+    ss << "results/snapshot_" << safeTitle << "_" << std::put_time(std::localtime(&in_time_t), "%Y%m%d_%H%M%S") << ".png";
+    
+    if (screenshot.saveToFile(ss.str())) {
+        std::cout << "\n[SUCCESS] Snapshot saved to: " << ss.str() << "\n" << std::endl;
+    } else {
+        std::cerr << "\n[ERROR] Failed to save snapshot to: " << ss.str() << "\n" << std::endl;
     }
 }
 
@@ -136,6 +186,18 @@ void Plot2D::drawGridAndAxes(sf::RenderWindow& window, const sf::Font& font) {
     yLabelText.setPosition(30.0f, PlotSettings::WINDOW_HEIGHT/2.0f + yLabelText.getGlobalBounds().width/2.0f);
 #endif
     window.draw(yLabelText);
+
+    // Controls Overlay
+#if SFML_VERSION_MAJOR >= 3
+    sf::Text controlsText(font, "W/A/S/D: Pan | Scroll: Zoom | R: Reset | P: Snapshot | ESC: Exit", 14);
+    controlsText.setFillColor(sf::Color(150, 150, 150));
+    controlsText.setPosition({PlotSettings::WINDOW_WIDTH - controlsText.getGlobalBounds().size.x - 20.0f, 20.0f});
+#else
+    sf::Text controlsText("W/A/S/D: Pan | Scroll: Zoom | R: Reset | P: Snapshot | ESC: Exit", font, 14);
+    controlsText.setFillColor(sf::Color(150, 150, 150));
+    controlsText.setPosition(PlotSettings::WINDOW_WIDTH - controlsText.getGlobalBounds().width - 20.0f, 20.0f);
+#endif
+    window.draw(controlsText);
 
     // FIX 1: Provide font to the constructor for SFML 3
 #if SFML_VERSION_MAJOR >= 3

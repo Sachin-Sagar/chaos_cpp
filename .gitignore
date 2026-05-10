@@ -26,6 +26,12 @@
 *.exe
 *.out
 *.app
+chaos_sim
 
 # VS Code directory (optional, but good practice to ignore local workspace settings)
 .vscode/
+
+# Results and snapshots
+results/
+*.png
+graphify-out/

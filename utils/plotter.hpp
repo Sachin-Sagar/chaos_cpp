@@ -14,6 +14,7 @@ public:
     void show();
 
 private:
+    void saveSnapshot(sf::RenderWindow& window);
     // Pass the font by reference to these functions
     void drawGridAndAxes(sf::RenderWindow& window, const sf::Font& font);
     void drawData(sf::RenderWindow& window);
